@@ -408,6 +408,52 @@ void RobotArm::run_inverse_kinematics(double* input_q, double* des_pose, double*
     }
 }
 
+void RobotArm::run_inverse_kinematics_with_path_generator()
+{
+    sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt");
+    fp = fopen(file_name, "w+");
+
+    double q_init[6] = {0.7665113, -0.3214468, 2.2424687, -1.9210219, 0.2806862, 0};
+
+    for (uint i = 1; i <= 6; i++) {
+        body[i].qi = q_init[i - 1];
+    }
+
+    double waypoints[6*3] = {-0.208, 0.1750735, 0.07,
+                           -0.124,	0.2590735,	-0.014,
+                           -0.292,	0.2590735,	-0.014,
+                           -0.292,	0.0910735,	0.154,
+                           -0.124,	0.0910735,	0.154,
+                           -0.208,	0.1750735,	0.07};
+    std::vector<double> path_x, path_y, path_z;
+
+    for(uint i = 0; i < 6 - 1; i++){
+        path_generator(waypoints[i*3 + 0], waypoints[(i + 1)*3 + 0], 0.5, 0.1, &path_x);
+        path_generator(waypoints[i*3 + 1], waypoints[(i + 1)*3 + 1], 0.5, 0.1, &path_y);
+        path_generator(waypoints[i*3 + 2], waypoints[(i + 1)*3 + 2], 0.5, 0.1, &path_z);
+    }
+
+    double pos_d[3], ori_d[3] = {1.5707963, 0, -2.094399};
+    for (uint indx = 0; indx < path_x.size(); indx++) {
+
+        pos_d[0] = path_x[indx];
+        pos_d[1] = path_y[indx];
+        pos_d[2] = path_z[indx];
+
+        kinematics();
+
+        inverse_kinematics(pos_d, ori_d);
+
+        save_data();
+
+        printf("Time : %.3f[s]\n", static_cast<double>(t_current));
+
+        t_current += h;
+    }
+
+    fclose(fp);
+}
+
 #ifdef FILEIO_H_
 void RobotArm::run_dynamics(){
     sprintf(file_name, "../FAR_Analysis/data/evaluation_dynamics_cpp.txt");
@@ -852,6 +898,56 @@ void RobotArm::dynamics()
     delete[] fac;
     delete[] q_ddot;
 #endif
+}
+
+void RobotArm::path_generator(double x0, double xf, double tf, double ta, std::vector<double> *path)
+{
+    double td = tf - ta;
+    double vd = (xf - x0)/td;
+    double xa = x0 + 0.5*ta*vd;
+    double xd = xf - 0.5*ta*vd;
+
+    double pos0, posf, vel0, velf, acc0, accf, ts;
+    double a0, a1, a2, a3, a4, a5;
+
+    // 가속 구간
+    pos0 = x0; posf = xa; vel0 = 0; velf = vd; acc0 = 0; accf = 0; ts = ta;
+    a0 = pos0;
+    a1 = vel0;
+    a2 = acc0/2;
+    a3 = (20*(posf - pos0) - (8*velf + 12*vel0)*ts - (3*acc0 - accf)*pow(ts,2))/(2*pow(ts,3));
+    a4 = (30*(pos0 - posf) + (14*velf + 16*vel0)*ts + (3*acc0 - 2*accf)*pow(ts,2))/(2*pow(ts, 4));
+    a5 = (12*(posf - pos0) - (6*velf + 6*vel0)*ts - (acc0 - accf)*pow(ts,2))/(2*pow(ts,5));
+
+    for(double t = 0; t < ts; t += h){
+        path->push_back(a0 + a1*t + a2*t*t + a3*t*t*t + a4*t*t*t*t + a5*t*t*t*t*t);
+    }
+
+    // 가속 구간
+    pos0 = xa; posf = xd; vel0 = vd; velf = vd; acc0 = 0; accf = 0; ts = td - ta;
+    a0 = pos0;
+    a1 = vel0;
+    a2 = acc0/2;
+    a3 = (20*(posf - pos0) - (8*velf + 12*vel0)*ts - (3*acc0 - accf)*pow(ts,2))/(2*pow(ts,3));
+    a4 = (30*(pos0 - posf) + (14*velf + 16*vel0)*ts + (3*acc0 - 2*accf)*pow(ts,2))/(2*pow(ts, 4));
+    a5 = (12*(posf - pos0) - (6*velf + 6*vel0)*ts - (acc0 - accf)*pow(ts,2))/(2*pow(ts,5));
+
+    for(double t = 0; t < ts; t += h){
+        path->push_back(a0 + a1*t + a2*t*t + a3*t*t*t + a4*t*t*t*t + a5*t*t*t*t*t);
+    }
+
+    // 가속 구간
+    pos0 = xd; posf = xf; vel0 = vd; velf = 0; acc0 = 0; accf = 0; ts = tf - td;
+    a0 = pos0;
+    a1 = vel0;
+    a2 = acc0/2;
+    a3 = (20*(posf - pos0) - (8*velf + 12*vel0)*ts - (3*acc0 - accf)*pow(ts,2))/(2*pow(ts,3));
+    a4 = (30*(pos0 - posf) + (14*velf + 16*vel0)*ts + (3*acc0 - 2*accf)*pow(ts,2))/(2*pow(ts, 4));
+    a5 = (12*(posf - pos0) - (6*velf + 6*vel0)*ts - (acc0 - accf)*pow(ts,2))/(2*pow(ts,5));
+
+    for(double t = 0; t < ts; t += h){
+        path->push_back(a0 + a1*t + a2*t*t + a3*t*t*t + a4*t*t*t*t + a5*t*t*t*t*t);
+    }
 }
 
 void RobotArm::save_data() {

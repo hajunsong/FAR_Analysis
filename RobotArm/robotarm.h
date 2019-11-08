@@ -23,6 +23,8 @@ public:
 #endif
     void run_kinematics(double *q, double *des_pose);
     void run_inverse_kinematics(double* cur_joint, double* des_pose, double* res_joint, double* res_pose);
+    void run_inverse_kinematics_with_path_generator();
+    void path_generator(double x0, double xf, double tf, double ta, std::vector<double> *path);
 
 private:
     inline void tilde(double *a, double *b) {
