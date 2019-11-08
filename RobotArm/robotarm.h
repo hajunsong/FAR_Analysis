@@ -23,6 +23,7 @@ public:
 #endif
     void run_kinematics(double *q, double *des_pose);
     void run_inverse_kinematics(double* cur_joint, double* des_pose, double* res_joint, double* res_pose);
+    void run_inverse_kinematics_with_path_generator();
 
 private:
     inline void tilde(double *a, double *b) {
@@ -86,6 +87,7 @@ private:
         void jacobian();
     void dynamics();
     void save_data();
+    void path_generator(double x0, double xf, double tf, double ta, std::vector<double> *path);
 
     void mat(double *mat_1, double *mat_2, uint row_1, uint col_1, uint row_2, uint col_2, double *mat_3);
     void mat(double *mat_1, double *vec_2, uint row_1, uint col_1, uint row_2, double *vec_3);
