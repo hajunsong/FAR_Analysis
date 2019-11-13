@@ -6,7 +6,9 @@ RobotArm::Body::Body(){
     u_vec[2] = 1;
 }
 
-RobotArm::Body::~Body(){}
+RobotArm::Body::~Body(){
+
+}
 
 void RobotArm::Body::ang2mat(double ang_z1, double ang_x, double ang_z2, double *mat, bool deg_flag)
 {
@@ -76,6 +78,84 @@ void RobotArm::mat(double *mat_1, double *vec_2, uint row_1, uint col_1, uint ro
         }
         vec_3[i] = temp;
     }
+}
+
+void RobotArm::rpy2mat(double yaw, double pitch, double roll, double *mat)
+{
+    double R_yaw[9] = {cos(yaw), -sin(yaw), 0, sin(yaw), cos(yaw), 0, 0, 0, 1};
+    double R_pitch[9] = {cos(pitch), 0, sin(pitch), 0, 1, 0, -sin(pitch), 0, cos(pitch)};
+    double R_roll[9] = {1, 0, 0, 0, cos(roll), -sin(roll), 0, sin(roll), cos(roll)};
+    double R_yaw_R_pitch[9] = {0,};
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            for(int k = 0; k < 3; k++){
+                R_yaw_R_pitch[i*3+j] += R_yaw[i*3+k]*R_pitch[k*3+j];
+            }
+        }
+    }
+
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            mat[i*3+j] = 0;
+            for(int k = 0; k < 3; k++){
+                mat[i*3+j] += R_yaw_R_pitch[i*3+k]*R_roll[k*3+j];
+            }
+        }
+    }
+}
+
+void RobotArm::mat_to_axis_angle(double R_init[], double R_final[], double r[], double *theta)
+{
+    double R[9] = {0,};
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            for(int k = 0; k < 3; k++){
+                R[i*3+j] += R_init[k*3+i]*R_final[k*3+j];
+            }
+        }
+    }
+
+    double m00, m01, m02, m10, m11, m12, m20, m21, m22;
+
+    m00 = R[0*3 + 0]; m01 = R[0*3 + 1]; m02 = R[0*3 + 2];
+    m10 = R[1*3 + 0]; m11 = R[1*3 + 1]; m12 = R[1*3 + 2];
+    m20 = R[2*3 + 0]; m21 = R[2*3 + 1]; m22 = R[2*3 + 2];
+
+    *theta = acos((m00 + m11 + m22 - 1)/2);
+
+    r[0] = (m21 - m12)/sqrt(pow((m21 - m12), 2)+pow((m02 - m20), 2)+pow((m10 - m01), 2));
+    r[1] = (m02 - m20)/sqrt(pow((m21 - m12), 2)+pow((m02 - m20), 2)+pow((m10 - m01), 2));
+    r[2] = (m10 - m01)/sqrt(pow((m21 - m12), 2)+pow((m02 - m20), 2)+pow((m10 - m01), 2));
+}
+
+void RobotArm::axis_angle_to_mat(double r[], double theta, double mat[])
+{
+    double c = cos(theta);
+    double s = sin(theta);
+    double t = 1 - c;
+    double mag = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+    double x = r[0]/mag;
+    double y = r[1]/mag;
+    double z = r[2]/mag;
+
+    mat[0] = t*x*x + c;
+    mat[1] = t*x*y - z*s;
+    mat[2] = t*x*z + y*s;
+
+    mat[3] = t*x*y + z*s;
+    mat[4] = t*y*y + c;
+    mat[5] = t*y*z - x*s;
+
+    mat[6] = t*x*z - y*s;
+    mat[7] = t*y*z + x*s;
+    mat[8] = t*z*z + c;
+}
+
+void RobotArm::mat2rpy(double mat[], double ori[])
+{
+    ori[0] = atan2(mat[2 * 3 + 1], mat[2 * 3 + 2]);
+    ori[1] = atan2(-mat[2 * 3 + 0], sqrt(pow(mat[2 * 3 + 1], 2.0) + pow(mat[2 * 3 + 2], 2.0)));
+    ori[2] = atan2(mat[1 * 3 + 0], mat[0 * 3 + 0]);
 }
 
 RobotArm::RobotArm(uint numbody, uint DOF) {
@@ -250,6 +330,7 @@ RobotArm::RobotArm(uint numbody, uint DOF) {
     body[6].u_vec[0] = 0; body[6].u_vec[1] = 0; body[6].u_vec[2] = 1;
 
     numeric = new Numerical();
+    numeric->absh3Initialize(h, num_body);
 }
 
 RobotArm::~RobotArm() {
@@ -309,9 +390,9 @@ void RobotArm::run_kinematics(double *q, double *des_pose){
     des_pose[0] = body[6].re[0];
     des_pose[1] = body[6].re[1];
     des_pose[2] = body[6].re[2];
-    des_pose[3] = body[6].roll;
-    des_pose[4] = body[6].pitch;
-    des_pose[5] = body[6].yaw;
+    des_pose[3] = body[6].ori[0];
+    des_pose[4] = body[6].ori[1];
+    des_pose[5] = body[6].ori[2];
 }
 
 #ifdef FILEIO_H_
@@ -385,9 +466,9 @@ void RobotArm::run_inverse_kinematics(double* input_q, double* des_pose, double*
         cur_pose[0] = body[num_body].re[0];
         cur_pose[1] = body[num_body].re[1];
         cur_pose[2] = body[num_body].re[2];
-        cur_pose[3] = body[num_body].roll;
-        cur_pose[4] = body[num_body].pitch;
-        cur_pose[5] = body[num_body].yaw;
+        cur_pose[3] = body[num_body].ori[0];
+        cur_pose[4] = body[num_body].ori[1];
+        cur_pose[5] = body[num_body].ori[2];
 
         double pos = sqrt(pow(des_pose[0] - cur_pose[0], 2) + pow(des_pose[1] - cur_pose[1], 2) + pow(des_pose[2] - cur_pose[2], 2));
         double ang_r = abs(des_pose[3] - cur_pose[3]);
@@ -408,6 +489,7 @@ void RobotArm::run_inverse_kinematics(double* input_q, double* des_pose, double*
     }
 }
 
+#ifdef FILEIO_H_
 void RobotArm::run_inverse_kinematics_with_path_generator()
 {
     sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt");
@@ -419,36 +501,203 @@ void RobotArm::run_inverse_kinematics_with_path_generator()
         body[i].qi = q_init[i - 1];
     }
 
-    double waypoints[6*3] = {-0.208, 0.1750735, 0.07,
-                           -0.124,	0.2590735,	-0.014,
-                           -0.292,	0.2590735,	-0.014,
-                           -0.292,	0.0910735,	0.154,
-                           -0.124,	0.0910735,	0.154,
-                           -0.208,	0.1750735,	0.07};
-    std::vector<double> path_x, path_y, path_z;
+    kinematics();
+
+    double des_angle[3] = {1.5707963, 0, -2.094399};
+    double rpy_mat[9] = {0,};
+    rpy2mat(des_angle[2], des_angle[1], des_angle[0], rpy_mat);
+
+    double r[3], theta;
+    mat_to_axis_angle(body[num_body].Ae, rpy_mat, r, &theta);
+
+    double waypoints[6*4] = {-0.208, 0.1750735, 0.07,   0,
+                             -0.124, 0.2590735,	-0.014, theta,
+                             -0.292, 0.2590735,	-0.014, theta,
+                             -0.292, 0.0910735,	0.154,  theta,
+                             -0.124, 0.0910735,	0.154,  theta,
+                             -0.208, 0.1750735,	0.07,   theta};
+    std::vector<double> path_x, path_y, path_z, path_theta;
 
     for(uint i = 0; i < 6 - 1; i++){
-        path_generator(waypoints[i*3 + 0], waypoints[(i + 1)*3 + 0], 0.5, 0.1, &path_x);
-        path_generator(waypoints[i*3 + 1], waypoints[(i + 1)*3 + 1], 0.5, 0.1, &path_y);
-        path_generator(waypoints[i*3 + 2], waypoints[(i + 1)*3 + 2], 0.5, 0.1, &path_z);
+        path_generator(waypoints[i*4 + 0], waypoints[(i + 1)*4 + 0], 0.5, 0.1, &path_x);
+        path_generator(waypoints[i*4 + 1], waypoints[(i + 1)*4 + 1], 0.5, 0.1, &path_y);
+        path_generator(waypoints[i*4 + 2], waypoints[(i + 1)*4 + 2], 0.5, 0.1, &path_z);
+        path_generator(waypoints[i*4 + 3], waypoints[(i + 1)*4 + 3], 0.5, 0.1, &path_theta);
     }
 
-    double pos_d[3], ori_d[3] = {1.5707963, 0, -2.094399};
+    double pos_d[3], ori_d[3];
+
+    vector<double> ref_data;
+    uint row = 2501;
+    uint col = 26;
+    load_data("../FAR_Analysis/data/evaluation_motion_path_generator_recurdyn.txt", &ref_data, "\t");
+
+    double q_dot[6], vel[6];
+    double Ri[9], Rd[9];
+
     for (uint indx = 0; indx < path_x.size(); indx++) {
 
         pos_d[0] = path_x[indx];
         pos_d[1] = path_y[indx];
         pos_d[2] = path_z[indx];
 
+        axis_angle_to_mat(r, path_theta[indx], Ri);
+
         kinematics();
 
+        mat(body[num_body].Ae, Ri, 3, 3, 3, 3, Rd);
+        mat2rpy(Rd, ori_d);
+
         inverse_kinematics(pos_d, ori_d);
+
+        for(uint i = 0; i < 6;i++)
+        {
+            q_dot[i] = ref_data[indx*col + 14 + i];
+        }
+        mat(J, q_dot, 6, 6, 6, vel);
+
+        for(uint i = 1; i <= 6; i++){
+            body[i].qi_dot = q_dot[i - 1];
+        }
+
+        body[num_body].re_dot[0] = vel[0];
+        body[num_body].re_dot[1] = vel[1];
+        body[num_body].re_dot[2] = vel[2];
+        body[num_body].we[0] = vel[3];
+        body[num_body].we[1] = vel[4];
+        body[num_body].we[2] = vel[5];
 
         save_data();
 
         printf("Time : %.3f[s]\n", static_cast<double>(t_current));
 
         t_current += h;
+    }
+
+    fclose(fp);
+}
+#endif
+
+void RobotArm::run_virtual_spring_damper_algorithm()
+{
+    sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt");
+    fp = fopen(file_name, "w+");
+
+    double q_init[6] = {0.766513540000000,-0.377905660000000,2.29414790000000,-1.91624220000000,0.280680130000000,-9.76020820000000e-15};
+    double q_dot_init[6] = {-0.000164439360000000,6.43344590000000e-05,0.000102933750000000,-0.000167268210000000,0.000164439360000000,2.56704870000000e-19};
+
+    for (uint i = 1; i <= 6; i++) {
+        body[i].qi = q_init[i - 1];
+        body[i].qi_dot = q_dot_init[i - 1];
+    }
+
+    kinematics();
+
+    double des_angle[3] = {1.5707963, 0, -2.094399};
+    double rpy_mat[9] = {0,};
+    rpy2mat(des_angle[2], des_angle[1], des_angle[0], rpy_mat);
+
+    double r[3], theta;
+    mat_to_axis_angle(body[num_body].Ae, rpy_mat, r, &theta);
+
+    double waypoints[6*4] = {-0.208, 0.1750735, 0.07, 0,
+                           -0.124,	0.2590735,	-0.014, theta,
+                           -0.292,	0.2590735,	-0.014, theta,
+                           -0.292,	0.0910735,	0.154, theta,
+                           -0.124,	0.0910735,	0.154, theta,
+                           -0.208,	0.1750735,	0.07, theta};
+    std::vector<double> path_x, path_y, path_z, path_theta;
+
+    for(uint i = 0; i < 6 - 1; i++){
+        path_generator(waypoints[i*4 + 0], waypoints[(i + 1)*4 + 0], 0.5, 0.1, &path_x);
+        path_generator(waypoints[i*4 + 1], waypoints[(i + 1)*4 + 1], 0.5, 0.1, &path_y);
+        path_generator(waypoints[i*4 + 2], waypoints[(i + 1)*4 + 2], 0.5, 0.1, &path_z);
+        path_generator(waypoints[i*4 + 3], waypoints[(i + 1)*4 + 3], 0.5, 0.1, &path_theta);
+    }
+
+    double pos_d[3], ori_d[3];
+    double Ri[9], Rd[9];
+
+    vector<double> ref_data;
+    uint row = 2501;
+    uint col = 26;
+    load_data("../FAR_Analysis/data/evaluation_motion_path_generator_recurdyn.txt", &ref_data, "\t");
+
+    double q_dot[6], vel[6];
+    double Y[12] = {0,}, Yp[12] = {0,};
+    for(uint i = 0; i < num_body; i++){
+        Y[i] = body[i + 1].qi;
+        Y[i + num_body] = body[i + 1].qi_dot;
+    }
+
+    for (uint indx = 0; indx < path_x.size(); indx++) {
+        pos_d[0] = path_x[indx];
+        pos_d[1] = path_y[indx];
+        pos_d[2] = path_z[indx];
+
+
+        kinematics();
+
+        axis_angle_to_mat(r, path_theta[indx], Ri);
+        mat(body[num_body].Ae, Ri, 3, 3, 3, 3, Rd);
+        mat2rpy(Rd, ori_d);
+
+        for(uint i = 0; i < num_body; i++){
+            body[i + 1].qi = Y[i];
+            body[i + 1].qi_dot = Y[i + num_body];
+        }
+
+        dynamics();
+        jacobian();
+
+        for(uint i = 0; i < 6;i++)
+        {
+            q_dot[i] = body[i+1].qi_dot;//ref_data[indx*col + 14 + i];
+        }
+        mat(J, q_dot, 6, 6, 6, vel);
+
+        body[num_body].re_dot[0] = vel[0];
+        body[num_body].re_dot[1] = vel[1];
+        body[num_body].re_dot[2] = vel[2];
+        body[num_body].we[0] = vel[3];
+        body[num_body].we[1] = vel[4];
+        body[num_body].we[2] = vel[5];
+
+        double Kp = 10000; double Dp = 60;
+        double Kr = 0; double Dr = 0;
+        double Fd[6] = {0,}, Td[6] = {0,};
+        Fd[0] = Kp*(pos_d[0] - body[num_body].re[0]) - Dp*(body[num_body].re_dot[0]);
+        Fd[1] = Kp*(pos_d[1] - body[num_body].re[1]) - Dp*(body[num_body].re_dot[1]);
+        Fd[2] = Kp*(pos_d[2] - body[num_body].re[2]) - Dp*(body[num_body].re_dot[2]);
+        Fd[3] = Kr*(ori_d[0] - body[num_body].ori[0]) - Dr*(body[num_body].we[0]);
+        Fd[4] = Kr*(ori_d[1] - body[num_body].ori[1]) - Dr*(body[num_body].we[1]);
+        Fd[5] = Kr*(ori_d[2] - body[num_body].ori[2]) - Dr*(body[num_body].we[2]);
+
+        double Jt[36] = {0,};
+        for(uint i = 0; i < 6; i++){
+            for(uint j = 0; j < 6; j++){
+                Jt[i*6 + j] = J[j*6 + i];
+            }
+        }
+
+        mat(Jt, Fd, 6, 6, 6, Td);
+
+        double Tg[6], Ta[6];
+        for(uint i = 0; i < num_body; i++){
+            Tg[i] = -Q[i];
+            Ta[i] = Td[i] + Tg[i];
+        }
+        dynamics(Ta);
+
+        for(uint i = 0; i < num_body; i++){
+            Yp[i] = body[i + 1].qi_dot;
+            Yp[i + num_body] = body[i + 1].qi_ddot;
+        }
+
+        t_current = numeric->absh3(Y, Yp, t_current);
+        save_data();
+        printf("Time : %.3f[s]\n", static_cast<double>(t_current));
+        numeric->getY_next(Y);
     }
 
     fclose(fp);
@@ -516,9 +765,11 @@ void RobotArm::kinematics()
 
     mat(body_end->Ai, body_end->Cij, 3, 3, 3, 3, body_end->Ae);
 
-    body_end->roll = atan2(body_end->Ae[2 * 3 + 1], body_end->Ae[2 * 3 + 2]);
-    body_end->pitch = atan2(-body_end->Ae[2 * 3 + 0], sqrt(pow(body_end->Ae[2 * 3 + 1], 2.0) + pow(body_end->Ae[2 * 3 + 2], 2.0)));
-    body_end->yaw = atan2(body_end->Ae[1 * 3 + 0], body_end->Ae[0 * 3 + 0]);
+    mat2rpy(body_end->Ae, body_end->ori);
+
+//    body_end->roll = atan2(body_end->Ae[2 * 3 + 1], body_end->Ae[2 * 3 + 2]);
+//    body_end->pitch = atan2(-body_end->Ae[2 * 3 + 0], sqrt(pow(body_end->Ae[2 * 3 + 1], 2.0) + pow(body_end->Ae[2 * 3 + 2], 2.0)));
+//    body_end->yaw = atan2(body_end->Ae[1 * 3 + 0], body_end->Ae[0 * 3 + 0]);
 }
 
 void RobotArm::inverse_kinematics(double des_pos[3], double des_ang[3]) {
@@ -526,9 +777,9 @@ void RobotArm::inverse_kinematics(double des_pos[3], double des_ang[3]) {
     for (uint i = 0; i < 3; i++) {
         PH_pos[i] = des_pos[i] - body_end->re[i];
     }
-    PH_ori[0] = des_ang[0] - body_end->roll;
-    PH_ori[1] = des_ang[1] - body_end->pitch;
-    PH_ori[2] = des_ang[2] - body_end->yaw;
+    PH_ori[0] = des_ang[0] - body_end->ori[0];
+    PH_ori[1] = des_ang[1] - body_end->ori[1];
+    PH_ori[2] = des_ang[2] - body_end->ori[2];
 
     for (uint i = 0; i < 3; i++) {
         PH[i] = PH_pos[i];
@@ -596,9 +847,9 @@ void RobotArm::inverse_kinematics(double des_pos[3], double des_ang[3]) {
         for (uint i = 0; i < 3; i++) {
             PH_pos[i] = des_pos[i] - body_end->re[i];
         }
-        PH_ori[0] = des_ang[0] - body_end->roll;
-        PH_ori[1] = des_ang[1] - body_end->pitch;
-        PH_ori[2] = des_ang[2] - body_end->yaw;
+        PH_ori[0] = des_ang[0] - body_end->ori[0];
+        PH_ori[1] = des_ang[1] - body_end->ori[1];
+        PH_ori[2] = des_ang[2] - body_end->ori[2];
 
         for (uint i = 0; i < 3; i++) {
             PH[i] = PH_pos[i];
@@ -858,8 +1109,147 @@ void RobotArm::dynamics()
             Q[indx - 1] += body1->Bi[i]*(body1->Li[i] - body1->Ki_Di_sum[i]);
         }
     }
+}
 
-#if 0
+void RobotArm::dynamics(double *Ta)
+{
+    Body *body0, *body1, *body2;
+    for(uint indx = 1; indx <= num_body; indx++){
+        body1 = &body[indx];
+        body0 = &body[indx - 1];
+        // velocity state
+        mat(body1->Ai_Cij, body1->u_vec, 3, 3, 3, body1->Hi);
+        tilde(body1->ri, body1->rit);
+        mat(body1->rit, body1->Hi, 3, 3, 3, body1->Bi);
+        memcpy(body1->Bi + 3, body1->Hi, sizeof(double)*3);
+        for (uint i = 0; i < 6; i++){
+            body1->Yih[i] = body0->Yih[i] + body1->Bi[i]*body1->qi_dot;
+        }
+
+        // cartesian velocity
+        for (uint i = 0; i < 3; i++){
+            for(uint j = 0; j < 3; j++){
+                body1->Ti[i*6 + j] = i == j ? 1 : 0;
+                body1->Ti[(i + 3)*6 + (j + 3)] = i == j ? 1 : 0;
+                body1->Ti[(i + 3)*6 + j] = 0;
+                body1->Ti[i*6 + (j + 3)] = -body1->rit[i*3 + j];
+            }
+        }
+
+        mat(body1->Ti, body1->Yih, 6, 6, 6, body1->Yib);
+        memcpy(body1->ri_dot, body1->Yib, sizeof(double)*3);
+        memcpy(body1->wi, body1->Yib + 3, sizeof(double)*3);
+        tilde(body1->wi, body1->wit);
+        mat(body1->Ai, body1->rhoip, 3, 3, 3, body1->rhoi);
+        for(uint i = 0; i < 3; i++){
+            body1->ric[i] = body1->ri[i] + body1->rhoi[i];
+        }
+        mat(body1->wit, body1->rhoi, 3, 3, 3, body1->ric_dot);
+        for (uint i = 0; i < 3; i++){
+            body1->ric_dot[i] += body1->ri_dot[i];
+        }
+
+        // mass & force
+        mat(body1->Ai, body1->Cii, 3, 3, 3, 3, body1->Ai_Cii);
+        double temp[9] = {0,}, temp2 = 0;
+        mat(body1->Ai_Cii, body1->Jip, 3, 3, 3, 3, temp);
+        for(uint i = 0; i < 3; i++){
+            for(uint j = 0; j < 3; j++){
+                temp2 = 0;
+                for(uint k = 0; k < 3; k++){
+                    temp2 += temp[i*3 + k]*body1->Ai_Cii[j*3 + k];
+                }
+                body1->Jic[i*3 + j] = temp2;
+            }
+        }
+        tilde(body1->ri_dot, body1->rit_dot);
+        tilde(body1->ric_dot, body1->rict_dot);
+        tilde(body1->ric, body1->rict);
+        double temp3[9] = {0,};
+        mat(body1->rict, body1->rict, 3, 3, 3, 3, temp3);
+        for(uint i = 0; i < 3; i++){
+            for(uint j = 0; j < 3; j++){
+                body1->Mih[i*6 + j] = i == j ? body1->mi : 0;
+                body1->Mih[(i + 3)*6 + j] = body1->mi*body1->rict[i*3 + j];
+                body1->Mih[i*6 + (j + 3)] = -body1->mi*body1->rict[i*3 + j];
+                body1->Mih[(i + 3)*6 + (j + 3)] = body1->Jic[i*3 + j] - body1->mi*temp3[i*3 + j];
+            }
+        }
+        body1->fic[0] = 0;
+        body1->fic[1] = 0;
+        body1->fic[2] = body1->mi*g;
+        body1->tic[0] = 0;
+        body1->tic[1] = 0;
+        body1->tic[2] = 0;
+        double rict_dot_wi[3] = {0,};
+        mat(body1->rict_dot, body1->wi, 3, 3, 3, rict_dot_wi);
+        for (uint i = 0; i < 3; i++){
+            body1->Qih_g[i] = body1->fic[i];
+            body1->Qih_c[i] = body1->mi*rict_dot_wi[i];
+            body1->Qih[i] = body1->Qih_g[i] + body1->Qih_c[i];
+        }
+        double rict_fic[3] = {0,}, rict_rict_dot_wi[3] = {0,}, Jic_wi[3] = {0,}, wit_Jic_wi[3] = {0,};
+        mat(body1->rict, body1->fic, 3, 3, 3, rict_fic);
+        mat(body1->rict, rict_dot_wi, 3, 3, 3, rict_rict_dot_wi);
+        mat(body1->Jic, body1->wi, 3, 3, 3, Jic_wi);
+        mat(body1->wit, Jic_wi, 3, 3, 3, wit_Jic_wi);
+        for (uint i = 0; i < 3; i++){
+            body1->Qih_g[i + 3] = rict_fic[i];
+            body1->Qih_c[i + 3] = body1->mi*rict_rict_dot_wi[i] - wit_Jic_wi[i];
+            body1->Qih[i + 3] = body1->tic[i] + body1->Qih_g[i + 3] + body1->Qih_c[i + 3];
+        }
+
+        // velocity coupling
+        mat(body0->wit, body1->Hi, 3, 3, 3, body1->Hi_dot);
+        double rit_dot_Hi[3] = {0,}, rit_Hi_dot[3] = {0,};
+        mat(body1->rit_dot, body1->Hi, 3, 3, 3, rit_dot_Hi);
+        mat(body1->rit, body1->Hi_dot, 3, 3, 3, rit_Hi_dot);
+        for(uint i = 0; i < 3; i++){
+            body1->Di[i] = (rit_dot_Hi[i] + rit_Hi_dot[i])*body1->qi_dot;
+            body1->Di[i+3] = body1->Hi_dot[i]*body1->qi_dot;
+        }
+
+        memcpy(body1->Di_sum, body1->Di, sizeof(double)*6);
+        for(uint indx2 = indx - 1; indx2 >= 1; indx2--){
+            for(uint i = 0; i < 6; i++){
+                body1->Di_sum[i] += body[indx2].Di[i];
+            }
+        }
+    }
+
+    // system EQM
+    for(uint i = num_body; i >= 1;  i--){
+        body1 = &body[i];
+        if (i == num_body){
+            memcpy(body1->Ki, body1->Mih, sizeof(double)*36);
+            memcpy(body1->Li, body1->Qih, sizeof(double)*6);
+            memcpy(body1->Li_g, body1->Qih_g, sizeof(double)*6);
+            memcpy(body1->Li_c, body1->Qih_c, sizeof(double)*6);
+        }
+        else{
+            body2 = &body[i + 1];
+            for(uint i = 0; i < 36; i++){
+                body1->Ki[i] = body1->Mih[i] + body2->Ki[i];
+            }
+            mat(body2->Ki, body2->Di, 6, 6, 6, body2->Ki_Di);
+            for(uint i = 0; i < 6; i++){
+                body1->Li[i] = body1->Qih[i] + body2->Li[i] - body2->Ki_Di[i];
+                body1->Li_g[i] = body1->Qih_g[i] + body2->Li_g[i] - body2->Ki_Di[i];
+                body1->Li_c[i] = body1->Qih_c[i] + body2->Li_c[i] - body2->Ki_Di[i];
+            }
+        }
+    }
+
+    memset(Q, 0, sizeof(double)*num_body);
+    for(uint indx = 1; indx <= num_body; indx++){
+        body1 = &body[indx];
+        mat(body1->Ki, body1->Di_sum, 6, 6, 6, body1->Ki_Di_sum);
+        for(uint i = 0; i < 6; i++){
+            Q[indx - 1] += body1->Bi[i]*(body1->Li[i] - body1->Ki_Di_sum[i]);
+            Q[indx - 1] += Ta[indx - 1];
+        }
+    }
+
     memset(M, 0, sizeof(double)*num_body*num_body);
     for(uint indx = 1; indx <= num_body; indx++){
         body1 = &body[indx];
@@ -897,7 +1287,6 @@ void RobotArm::dynamics()
     delete[] indx;
     delete[] fac;
     delete[] q_ddot;
-#endif
 }
 
 void RobotArm::path_generator(double x0, double xf, double tf, double ta, std::vector<double> *path)
@@ -959,14 +1348,18 @@ void RobotArm::save_data() {
     kinematics();
 
     fprintf(fp, "%.7f\t%.7f\t%.7f\t", body[num_body].re[0], body[num_body].re[1], body[num_body].re[2]);
-    fprintf(fp, "%.7f\t%.7f\t%.7f\t", body[num_body].roll, body[num_body].pitch, body[num_body].yaw);
+    fprintf(fp, "%.7f\t%.7f\t%.7f\t", body[num_body].ori[0], body[num_body].ori[1], body[num_body].ori[2]);
 
     for (uint i = 1; i <= num_body; i++) {
         fprintf(fp, "%.7f\t", body[i].qi_dot);
     }
 
+    fprintf(fp, "%.7f\t%.7f\t%.7f\t", body[num_body].re_dot[0], body[num_body].re_dot[1], body[num_body].re_dot[2]);
+    fprintf(fp, "%.7f\t%.7f\t%.7f\t", body[num_body].we[0], body[num_body].we[1], body[num_body].we[2]);
+
     for (uint i = 1; i <= num_body; i++) {
         fprintf(fp, "%.7f\t", body[i].qi_ddot);
     }
+
     fprintf(fp, "\n");
 }
