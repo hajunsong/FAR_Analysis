@@ -16,7 +16,7 @@ for i = 2 : 7
 end
 
 while t_current < end_time - h
-    des = ref_data(indx, 9 : 14);
+    des = ref_data(indx, 9 : 14)';
     
     kinematics;
     inverse_kinematics(des);

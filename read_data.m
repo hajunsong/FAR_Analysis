@@ -122,7 +122,7 @@ function read_data
     % body 6
     body(7).Cij = ang2mat(DH(6,4), DH(6,1), 0, 1);
     body(7).sijp = [0;0;DH(6,3)];
-    body(7).Cii = ang2mat(pi/2, pi/2, -pi/2);
+    body(7).Cii = ang2mat(pi/2, pi/2, pi/2);
     body(7).rhoip = [5.39394e-10;3.33671e-8;0.089384];
     body(7).mi = 2.08363885223627e-002;
     body(7).Ixx = 2.66302463617021e-006; 

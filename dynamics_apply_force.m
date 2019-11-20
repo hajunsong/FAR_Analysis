@@ -1,6 +1,6 @@
 function dynamics_apply_force(Ta)
 
-    global body g num_body
+    global body g num_body des_pos path_x path_y path_z path_theta r indx Ae h err_prev err_accum
     
     body(1).wit = tilde(body(1).wi);
     body(1).Yih = zeros(6,1);
@@ -78,11 +78,50 @@ function dynamics_apply_force(Ta)
             temp = temp + body(i2).Di;
         end
         Q(i - 1,1) = body(i).Bi'*(body(i).Li - body(i).Ki*temp);
-        body(i).Q_g = body(i).Bi'*(body(i).Li_g - body(i).Ki*temp);
-        body(i).Q_c = body(i).Bi'*(body(i).Li_c - body(i).Ki*temp);
+        Q_g(i-1,1) = body(i).Bi'*(body(i).Li_g - body(i).Ki*temp);
+        Q_c(i-1,1) = body(i).Bi'*(body(i).Li_c - body(i).Ki*temp);
     end
     
+    
+    des_pos = [path_x(indx,1), path_y(indx,1), path_z(indx,1)]';
+    Ri = axis_angle_to_mat(r, path_theta(indx,1));
+    Rd = Ae*Ri;
+    des_ori = mat2rpy(Rd);
+    
+    diff = des_ori - body(end).ori;
+    mat = rpy2mat(diff(3), diff(2), diff(1));
+    diff_ori = mat2rpy(mat);
+    
+    des = [des_pos;des_ori];
+    
+    kinematics;
+    J = jacobian2;
+    for i = 2 : 7
+        q_dot(i-1,1) = body(i).qi_dot;
+    end
+    vel = J*q_dot;
+    body(end).re_dot = vel(1:3,1);
+    body(end).we = vel(4:6,1);
+    
+    Kp = 1100; Kd = 45;
+    Rp = 1100; Rd = 45;
+    F(1,1) = Kp*(des(1) - body(end).pose(1,1)) - Kd*vel(1,1);
+    F(2,1) = Kp*(des(2) - body(end).pose(2,1)) - Kd*vel(2,1);
+    F(3,1) = Kp*(des(3) - body(end).pose(3,1)) - Kd*vel(3,1);
+    F(4,1) = Rp*(des(4) - body(end).pose(4,1)) - Rd*vel(4,1);
+    F(5,1) = Rp*(des(5) - body(end).pose(5,1)) - Rd*vel(5,1);
+    F(6,1) = Rp*(des(6) - body(end).pose(6,1)) - Rd*vel(6,1);
+%     F(4,1) = Rp*(diff_ori(1)) - Rd*vel(4,1);
+%     F(5,1) = Rp*(diff_ori(2)) - Rd*vel(5,1);
+%     F(6,1) = Rp*(diff_ori(3)) - Rd*vel(6,1);
+        
+    Tg = -Q;
+    
+    Td = J'*F;
+    Ta = Td + Tg;
+    
     q_ddot = M\(Q + Ta);
+%     disp(q_ddot');
     
     for i = 2 : num_body + 1
         body(i).qi_ddot = q_ddot(i - 1, 1);

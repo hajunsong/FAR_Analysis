@@ -1,6 +1,6 @@
 clc; clear all; close all;
 
-global start_time end_time body h t_current Y Yp intcount num_body Q Q_g
+global start_time end_time body h t_current Y Yp intcount num_body Q Q_g path_x path_y path_z path_theta r indx Ae err_prev err_accum
 
 format long g
 
@@ -121,62 +121,13 @@ indx = 1;
 q_dot = zeros(6,1);
 
 err_prev = zeros(6,1);
+err_accum = zeros(6,1);
 
 while t_current < end_time
-    des_pos = [path_x(500,1), path_y(500,1), path_z(500,1)]';
-    Ri = axis_angle_to_mat(r, path_theta(500,1));
-    
+        
     Y2qdq;
-    
     kinematics;
-    
-    Rd = Ae*Ri;
-    des_ori = mat2rpy(Rd);
-    
-    dynamics;
-    
-    J = jacobian2;
-    for i = 2 : 7
-        q_dot(i-1,1) = body(i).qi_dot;
-    end
-    vel = J*q_dot;
-    body(end).re_dot = vel(1:3,1);
-    body(end).we = vel(4:6,1);
-    
-    diff_A = Rd - Ae;
-    diff_ang = mat2rpy(diff_A);
-    
-    err = [des_pos;des_ori] - [body(end).re;body(end).ori];
-    
-    disp([des_ori', body(end).ori']);
-    
-    Kp = 10;
-    Kd = 1;
-    
-    F = Kp*err + Kd*(err - err_prev)/h;
-    
-%     Kp = 3000; Dp = 35;
-%     Kr = 0.1; Dr = 0;
-%     F(1,1) = Kp*(des_pos(1) - body(end).re(1,1)) - Dp*body(end).re_dot(1,1);
-%     F(2,1) = Kp*(des_pos(2) - body(end).re(2,1)) - Dp*body(end).re_dot(2,1);
-%     F(3,1) = Kp*(des_pos(3) - body(end).re(3,1)) - Dp*body(end).re_dot(3,1);
-%     T(1,1) = 0*(des_ori(1) - body(end).ori(1,1)) - 0*body(end).we(1,1);
-%     T(2,1) = 0*(des_ori(2) - body(end).ori(2,1)) - 0*body(end).we(2,1);
-%     T(3,1) = 0*(des_ori(3) - body(end).ori(3,1)) - 0*body(end).we(3,1);
-%     T(1,1) = Kr*(diff_ang(1)) - Dr*body(end).we(1,1);
-%     T(2,1) = Kr*(diff_ang(2)) - Dr*body(end).we(2,1);
-%     T(3,1) = Kr*(diff_ang(3)) - Dr*body(end).we(3,1);
-%     T(1,1) = -Dr*body(end).we(1,1);
-%     T(2,1) = -Dr*body(end).we(2,1);
-%     T(3,1) = -Dr*body(end).we(3,1);
-    
-    Tg = -Q;
-    Td = J'*F;
-    Ta = Td + Tg;
-    
-    err_prev = err;
-    
-    dynamics_apply_force(Ta);
+    dynamics_apply_force(0);
     dqddq2Yp;
     
     if intcount == 1 || intcount == 5 || intcount >= 7

@@ -13,7 +13,7 @@ fp = fopen('evaluation_motion_path_generator_matlab.txt','w+');
 q_init = [0.966513540000000,-0.577905660000000,1.29414790000000,-1.51624220000000,0.180680130000000,0];
 
 for i = 2 : 7
-    body(i).qi = q_init(i - 1);
+    body(i).qi = ref_data(1, i + 1);
 end
 
 kinematics;
@@ -24,8 +24,12 @@ rpy_mat = rpy2mat(des_angle(3), des_angle(2), des_angle(1));
 Ae = body(7).Ae;
 
 waypoints = [
-    body(end).re', 0;
-    -0.208, 0.1750735, 0.07, theta];
+    -0.208, 0.1750735, 0.07, 0;
+    -0.124,	0.2590735,	-0.014, theta;
+    -0.292,	0.2590735,	-0.014, theta;
+    -0.292,	0.0910735,	0.154, theta;
+    -0.124,	0.0910735,	0.154, theta;
+    -0.208,	0.1750735,	0.07, theta];
 
 path_x = [];
 path_y = [];
@@ -114,11 +118,11 @@ for indx = 1 : size(path_x, 1)
     Rd = Ae*Ri;
     des_ori = mat2rpy(Rd);
     
-    disp(des_ori'); 
+%     disp(des_ori'); 
 %     des_ori = [1.5707963, 0, -2.094399]';
 
     inverse_kinematics([des(1:3)';des_ori]);
-    disp(body(end).ori');
+%     disp(body(end).ori');
     
     q_dot = ref_data(indx, 15:20)';
     
@@ -134,9 +138,9 @@ for indx = 1 : size(path_x, 1)
     
     t_current = t_current + h;
     
-%     disp(t_current);
+    disp(t_current);
 end
 
 fclose('all');
 
-% plotting_motion;
+plotting_motion;

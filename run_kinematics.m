@@ -11,10 +11,18 @@ indx = 1;
 
 fp = fopen('evaluation_motion_matlab.txt','w+');
 
+body(2).qi = 0;
+body(3).qi = 0;
+body(4).qi = 0;
+body(5).qi = 0;
+body(6).qi = 0;
+body(7).qi = 0;
+
 while t_current < end_time - h
-    for i = 2 : 7
-        body(i).qi = ref_data(indx, i + 1);
-    end
+%     for i = 2 : 7
+%         body(i).qi = ref_data(indx, i + 1);
+%     end
+    body(7).qi = body(7).qi + h;
     
     kinematics;
     
