@@ -13,12 +13,12 @@ fp = fopen('evaluation_motion_path_generator_matlab.txt','w+');
 q_init = [0.966513540000000,-0.577905660000000,1.29414790000000,-1.51624220000000,0.180680130000000,0];
 
 for i = 2 : 7
-    body(i).qi = ref_data(1, i + 1);
+    body(i).qi = 0*ref_data(1, i + 1);
 end
 
 kinematics;
 
-des_angle = [1.5707963, 0, -2.094399];
+des_angle = [1.570796300000000, 8.053672600000000e-15, -2.094399000000000];
 rpy_mat = rpy2mat(des_angle(3), des_angle(2), des_angle(1));
 [r,theta] = mat_to_axis_angle(body(7).Ae'*rpy_mat);
 Ae = body(7).Ae;

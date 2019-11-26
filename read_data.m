@@ -26,7 +26,7 @@ function read_data
             0   0         0.1025         0];
 
     % body 0
-    body(1).Ai = eye(3);
+    body(1).Ai = ang2mat(0, 0, 0);
     body(1).ri = zeros(3,1);
     body(1).Cij = ang2mat(0, 0, 0);
     body(1).sijp = zeros(3,1);

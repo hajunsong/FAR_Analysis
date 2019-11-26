@@ -12,7 +12,7 @@ indx = 1;
 fp = fopen('evaluation_motion_matlab.txt','w+');
 
 for i = 2 : 7
-    body(i).qi = ref_data(1, i + 1);
+    body(i).qi = 0*ref_data(1, i + 1);
 end
 
 while t_current < end_time - h

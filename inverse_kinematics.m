@@ -7,10 +7,10 @@ function inverse_kinematics(des)
     PH = [PH_pos;PH_ori];
         
     NRcount = 1;
-    err_tol = 1e-7;
+    err_tol = 1e-5;
     
     while 1
-        if NRcount >= 10; break; end
+        if NRcount >= 5; break; end
         
         J = jacobian2;
 

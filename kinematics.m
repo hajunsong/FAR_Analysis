@@ -7,7 +7,6 @@ function kinematics
         body(indx).Aijpp = [cos(body(indx).qi) -sin(body(indx).qi) 0; sin(body(indx).qi) cos(body(indx).qi) 0; 0 0 1];
         body(indx).Ai_Cij = body(indx - 1).Ai*body(indx - 1).Cij;
         body(indx).Ai = body(indx).Ai_Cij*body(indx).Aijpp;
-        body(indx).zi = body(indx - 1).Ai*body(indx - 1).Cij*body(indx - 1).u_vec;
         
         % position
         body(indx - 1).sij = body(indx - 1).Ai*body(indx - 1).sijp;
