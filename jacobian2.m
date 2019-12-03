@@ -85,7 +85,7 @@ function J = jacobian2
 %     
 %     J = [Jv;Jw]
 
-    clc;
+%     clc;
 
     body(2).Aij_qi = [-sin(body(2).qi) -cos(body(2).qi) 0; cos(body(2).qi) -sin(body(2).qi) 0; 0 0 0];
     body(3).Aij_qi = [-sin(body(3).qi) -cos(body(3).qi) 0; cos(body(3).qi) -sin(body(3).qi) 0; 0 0 0];
@@ -168,7 +168,7 @@ function J = jacobian2
         pitch_q1 pitch_q2 pitch_q3 pitch_q4 pitch_q5 pitch_q6;
         yaw_q1 yaw_q2 yaw_q3 yaw_q4 yaw_q5 yaw_q6];
 
-    J = [PH_pos_q; PH_ori_q]
+    J = [PH_pos_q; PH_ori_q];
 
     A0 = body(1).Ai;
     C01 = body(1).Cij;
@@ -872,6 +872,6 @@ function J = jacobian2
         t1 
         t2;];
         
-    J = [PH_q_pos; PH_q_ori];
+%     J = [PH_q_pos; PH_q_ori];
     
 end 
