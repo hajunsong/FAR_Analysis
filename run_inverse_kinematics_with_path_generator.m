@@ -13,7 +13,7 @@ fp = fopen('evaluation_motion_path_generator_matlab.txt','w+');
 q_init = [0.966513540000000,-0.577905660000000,1.29414790000000,-1.51624220000000,0.180680130000000,0];
 
 for i = 2 : 7
-    body(i).qi = 0*ref_data(1, i + 1);
+    body(i).qi = ref_data(1, i + 1);
 end
 
 kinematics;

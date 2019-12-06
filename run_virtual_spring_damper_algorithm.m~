@@ -1,6 +1,6 @@
 clc; clear all; close all;
 
-global start_time end_time body h t_current Y Yp intcount num_body Q Q_g path_x path_y path_z path_theta r indx err_prev err_accum Ae
+global start_time end_time body h t_current Y Yp intcount num_body Q Q_g path_x path_y path_z path_theta r indx Ae err_prev err_accum
 
 format long g
 
@@ -28,19 +28,19 @@ path_z = [];
 path_theta = [];
 
 Ae = body(end).Ae;
-% A = [-1,0,0;0,0,1;0,1,0];
+A = [-1,0,0;0,0,1;0,1,0];
 
-des_angle = [0,0,1.04719367];
+des_angle = [1.5707963, 0, -2.094399];
 rpy_mat = rpy2mat(des_angle(3), des_angle(2), des_angle(1));
-[r,theta] = mat_to_axis_angle(Ae'*rpy_mat);
+[r,theta] = mat_to_axis_angle(Ae'*A'rpy_mat);
 
 waypoints = [
-    -0.208, 0.1750735, 0.07, 0;
-    -0.124,	0.2590735,	-0.014, theta;
-    -0.292,	0.2590735,	-0.014, theta;
-    -0.292,	0.0910735,	0.154, theta;
-    -0.124,	0.0910735,	0.154, theta;
-    -0.208,	0.1750735,	0.07, theta];
+    0.208,  -0.1750735, 0.07, 0;
+    0.124,	-0.2590735,	-0.014, theta;
+    0.292,	-0.2590735,	-0.014, theta;
+    0.292,	-0.0910735,	0.154, theta;
+    0.124,	-0.0910735,	0.154, theta;
+    0.208,	-0.1750735,	0.07, theta];
 
 for i = 1 : size(waypoints,1)-1
     x0 = waypoints(i,1);

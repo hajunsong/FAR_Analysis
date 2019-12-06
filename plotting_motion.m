@@ -1,8 +1,8 @@
 close all;
 
 ref = load('evaluation_motion_path_generator_recurdyn.txt');
-% data = load('evaluation_vsd.txt');
-data = load('evaluation_motion_path_generator_matlab.txt');
+data = load('evaluation_vsd.txt');
+% data = load('evaluation_motion_path_generator_matlab.txt');
 
 % ref = load('evaluation_motion_recurdyn.txt');
 % data = load('evaluation_motion_matlab.txt');

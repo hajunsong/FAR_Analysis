@@ -22,7 +22,7 @@ while t_current < end_time - h
 %     for i = 2 : 7
 %         body(i).qi = ref_data(indx, i + 1);
 %     end
-    body(3).qi = body(3).qi + h;
+    body(5).qi = body(5).qi + h;
     
     kinematics;
     
