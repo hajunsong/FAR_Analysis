@@ -18,16 +18,13 @@ function kinematics
     body(num_body + 1).re = body(num_body + 1).ri + body(num_body + 1).sij;
     body(num_body + 1).Ae = body(num_body + 1).Ai*body(num_body + 1).Cij;
     
-%     A = [-1,0,0;0,0,1;0,1,0];
-    body(end).Ae = body(end).Ae;
+    A = [-1,0,0;0,0,1;0,1,0];
+    body(end).Ae = body(end).Ae*A;
     body(num_body + 1).ori = mat2rpy(body(num_body + 1).Ae);
-%     if body(end).ori(1) < -2
-%         body(end).ori(1) = body(end).ori(1) + 2*pi;
-%     end
-%     
-%     if body(end).ori(3) < -2
-%         body(end).ori(3) = body(end).ori(3) + 2*pi;
-%     end
+    if body(end).ori(1) < -2
+    end
+    
+    if body(end).ori(3) <
 %     body(num_body + 1).roll = atan2(body(num_body + 1).Ae(3,2), body(num_body + 1).Ae(3,3));
 %     body(num_body + 1).pitch = atan2(-body(num_body + 1).Ae(3,1),sqrt(body(num_body + 1).Ae(3,2)^2 + body(num_body + 1).Ae(3,3)^2));
 %     body(num_body + 1).yaw = atan2(body(num_body + 1).Ae(2,1), body(num_body + 1).Ae(1,1));

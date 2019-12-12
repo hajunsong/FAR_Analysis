@@ -31,4 +31,6 @@ end
 
 fclose('all');
 
-plotting_motion;
+data = load('evaluation_motion_matlab.txt');
+
+plotting_motion(ref_data, data);
