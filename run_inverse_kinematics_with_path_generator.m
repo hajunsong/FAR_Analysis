@@ -10,7 +10,7 @@ ref_data = load('evaluation_motion_path_generator_recurdyn.txt');
 
 fp = fopen('evaluation_motion_path_generator_matlab.txt','w+');
 
-q_init = [0.966513540000000,-0.577905660000000,1.29414790000000,-1.51624220000000,0.180680130000000,0];
+q_init = ref_data(1,3:8);
 
 for i = 2 : 7
     body(i).qi = q_init(i - 1);
@@ -24,8 +24,12 @@ rpy_mat = rpy2mat(des_angle(3), des_angle(2), des_angle(1));
 Ae = body(7).Ae;
 
 waypoints = [
-    body(end).re', 0;
-    -0.208, 0.1750735, 0.07, theta];
+    -0.208, 0.1750735, 0.07, 0;
+    -0.124,	0.2590735,	-0.014, theta;
+    -0.292,	0.2590735,	-0.014, theta;
+    -0.292,	0.0910735,	0.154, theta;
+    -0.124,	0.0910735,	0.154, theta;
+    -0.208,	0.1750735,	0.07, theta];
 
 path_x = [];
 path_y = [];
@@ -107,18 +111,14 @@ for i = 1 : size(waypoints,1)-1
 end
 
 for indx = 1 : size(path_x, 1)
-    des = [path_x(indx,1), path_y(indx,1), path_z(indx,1), path_theta(indx,1)];
+    des_pos = [path_x(indx,1);path_y(indx,1);path_z(indx,1)];
     
     kinematics;    
     Ri = axis_angle_to_mat(r, path_theta(indx,1));
     Rd = Ae*Ri;
     des_ori = mat2rpy(Rd);
-    
-    disp(des_ori'); 
-%     des_ori = [1.5707963, 0, -2.094399]';
 
-    inverse_kinematics([des(1:3)';des_ori]);
-    disp(body(end).ori');
+    inverse_kinematics([des_pos;des_ori]);
     
     q_dot = ref_data(indx, 15:20)';
     
@@ -134,9 +134,9 @@ for indx = 1 : size(path_x, 1)
     
     t_current = t_current + h;
     
-%     disp(t_current);
+    disp(t_current);
 end
 
 fclose('all');
 
-% plotting_motion;
+plotting_motion;

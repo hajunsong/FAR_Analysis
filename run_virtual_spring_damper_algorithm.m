@@ -146,23 +146,14 @@ while t_current < end_time
     diff_A = Rd - Ae;
     diff_ang = mat2rpy(diff_A);
     
-    err = [des_pos;des_ori] - [body(end).re;body(end).ori];
-    
-    disp([des_ori', body(end).ori']);
-    
-    Kp = 10;
-    Kd = 1;
-    
-    F = Kp*err + Kd*(err - err_prev)/h;
-    
-%     Kp = 3000; Dp = 35;
-%     Kr = 0.1; Dr = 0;
-%     F(1,1) = Kp*(des_pos(1) - body(end).re(1,1)) - Dp*body(end).re_dot(1,1);
-%     F(2,1) = Kp*(des_pos(2) - body(end).re(2,1)) - Dp*body(end).re_dot(2,1);
-%     F(3,1) = Kp*(des_pos(3) - body(end).re(3,1)) - Dp*body(end).re_dot(3,1);
-%     T(1,1) = 0*(des_ori(1) - body(end).ori(1,1)) - 0*body(end).we(1,1);
-%     T(2,1) = 0*(des_ori(2) - body(end).ori(2,1)) - 0*body(end).we(2,1);
-%     T(3,1) = 0*(des_ori(3) - body(end).ori(3,1)) - 0*body(end).we(3,1);
+    Kp = 1000; Dp = 15;
+    Kr = 1000; Dr = 15;
+    F(1,1) = Kp*(des_pos(1) - body(end).re(1,1)) - Dp*body(end).re_dot(1,1);
+    F(2,1) = Kp*(des_pos(2) - body(end).re(2,1)) - Dp*body(end).re_dot(2,1);
+    F(3,1) = Kp*(des_pos(3) - body(end).re(3,1)) - Dp*body(end).re_dot(3,1);
+    F(4,1) = Kr*(des_ori(1) - body(end).ori(1,1)) - Dr*body(end).we(1,1);
+    F(5,1) = Kr*(des_ori(2) - body(end).ori(2,1)) - Dr*body(end).we(2,1);
+    F(6,1) = Kr*(des_ori(3) - body(end).ori(3,1)) - Dr*body(end).we(3,1);
 %     T(1,1) = Kr*(diff_ang(1)) - Dr*body(end).we(1,1);
 %     T(2,1) = Kr*(diff_ang(2)) - Dr*body(end).we(2,1);
 %     T(3,1) = Kr*(diff_ang(3)) - Dr*body(end).we(3,1);
@@ -173,8 +164,6 @@ while t_current < end_time
     Tg = -Q;
     Td = J'*F;
     Ta = Td + Tg;
-    
-    err_prev = err;
     
     dynamics_apply_force(Ta);
     dqddq2Yp;

@@ -2,6 +2,8 @@ clc; clear all; close all;
 
 global start_time end_time body h t_current
 
+format long g
+
 read_data;
 
 t_current = start_time;
