@@ -8,7 +8,8 @@ int main()
 //    robot.run_inverse_kinematics();
 //    robot.run_dynamics();
 //    robot.run_inverse_kinematics_with_path_generator();
-    robot.run_virtual_spring_damper_algorithm();
+//    robot.run_virtual_spring_damper_algorithm();
+    robot.run_feeding_motion();
 
     return 0;
 }

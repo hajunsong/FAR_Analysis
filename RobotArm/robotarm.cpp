@@ -180,7 +180,7 @@ RobotArm::RobotArm(uint numbody, uint DOF) {
 
     // read data
     start_time = 0;
-    h = 0.001;
+    h = 0.005;
     g = -9.80665;
 
     // DH paramter
@@ -353,8 +353,8 @@ RobotArm::~RobotArm() {
 #ifdef FILEIO_H_
 void RobotArm::run_kinematics()
 {
-    sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_cpp.txt");
-    fp = fopen(file_name, "w+");
+    file_name = "../FAR_Analysis/data/evaluation_motion_cpp.txt";
+    fp = fopen(file_name.c_str(), "w+");
 
     vector<double> ref_data;
     uint row = 2501;
@@ -397,8 +397,8 @@ void RobotArm::run_kinematics(double *q, double *des_pose){
 
 #ifdef FILEIO_H_
 void RobotArm::run_inverse_kinematics() {
-    sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_cpp.txt");
-    fp = fopen(file_name, "w+");
+    file_name = "../FAR_Analysis/data/evaluation_motion_cpp.txt";
+    fp = fopen(file_name.c_str(), "w+");
 
     vector<double> ref_data;
     uint row = 2501;
@@ -492,8 +492,8 @@ void RobotArm::run_inverse_kinematics(double* input_q, double* des_pose, double*
 #ifdef FILEIO_H_
 void RobotArm::run_inverse_kinematics_with_path_generator()
 {
-    sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt");
-    fp = fopen(file_name, "w+");
+    file_name = "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt";
+    fp = fopen(file_name.c_str(), "w+");
 
     double q_init[6] = {0.7665113, -0.3214468, 2.2424687, -1.9210219, 0.2806862, 0};
 
@@ -580,8 +580,8 @@ void RobotArm::run_inverse_kinematics_with_path_generator()
 
 void RobotArm::run_virtual_spring_damper_algorithm()
 {
-    sprintf(file_name, "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt");
-    fp = fopen(file_name, "w+");
+    file_name =  "../FAR_Analysis/data/evaluation_motion_path_generator_cpp.txt";
+    fp = fopen(file_name.c_str(), "w+");
 
     double q_init[6] = {0.766513540000000,-0.377905660000000,2.29414790000000,-1.91624220000000,0.280680130000000,-9.76020820000000e-15};
     double q_dot_init[6] = {-0.000164439360000000,6.43344590000000e-05,0.000102933750000000,-0.000167268210000000,0.000164439360000000,2.56704870000000e-19};
@@ -703,10 +703,96 @@ void RobotArm::run_virtual_spring_damper_algorithm()
     fclose(fp);
 }
 
+void RobotArm::run_feeding_motion()
+{
+    file_name = "../FAR_Analysis/data/feeding_motion_C.txt";
+    fp = fopen(file_name.c_str(), "w+");
+
+    fp1 = fopen("../FAR_Analysis/feeding_motion_data/rise_q1.txt", "w+");
+    fp2 = fopen("../FAR_Analysis/feeding_motion_data/rise_q2.txt", "w+");
+    fp3 = fopen("../FAR_Analysis/feeding_motion_data/rise_q3.txt", "w+");
+    fp4 = fopen("../FAR_Analysis/feeding_motion_data/rise_q4.txt", "w+");
+    fp5 = fopen("../FAR_Analysis/feeding_motion_data/rise_q5.txt", "w+");
+    fp6 = fopen("../FAR_Analysis/feeding_motion_data/rise_q6.txt", "w+");
+
+    std::vector<double> ready_data, step_1, step_2;
+    load_data("../FAR_Analysis/feeding_motion_data/ready.txt", &ready_data, "\t");
+    load_data("../FAR_Analysis/feeding_motion_data/rise_step1.txt", &step_1, "\t");
+    load_data("../FAR_Analysis/feeding_motion_data/rise_step2.txt", &step_2, "\t");
+
+    for (uint i = 1; i <= 6; i++) {
+        body[i].qi = ready_data[i + 1];
+    }
+
+    kinematics();
+
+    double rpy_mat1[9] = {0,}, rpy_mat2[9] = {0,};
+    rpy2mat(step_1[13], step_1[12], step_1[11], rpy_mat1);
+    rpy2mat(step_2[13], step_2[12], step_2[11], rpy_mat2);
+
+    double r1[3], theta1, r2[3], theta2;
+    mat_to_axis_angle(body[num_body].Ae, rpy_mat1, r1, &theta1);
+    mat_to_axis_angle(rpy_mat1, rpy_mat2, r2, &theta2);
+
+    const int wp_row = 5, wp_col = 4;
+
+    vector<double> point_x, point_y, point_z, point_theta, total_time, acc_time, point_roll, point_pitch, point_yaw;
+    total_time.push_back(0.0);  point_x.push_back(ready_data[0]);   point_y.push_back(ready_data[1]);   point_z.push_back(ready_data[2]);   point_roll.push_back(); point_pitch.push_back();    point_yaw.push_back();  acc_time.push_back(0.1);
+    total_time.push_back(0.5);  point_x.push_back(step_1[0]);       point_y.push_back(step_1[1]);       point_z.push_back(step_1[2]);       point_roll.push_back(); point_pitch.push_back();    point_yaw.push_back();  acc_time.push_back(0.1);
+    total_time.push_back(1.0);  point_x.push_back(step_2[0]);       point_y.push_back(step_2[1]);       point_z.push_back(step_2[2]);       point_roll.push_back(); point_pitch.push_back();    point_yaw.push_back();  acc_time.push_back(0.1);
+    total_time.push_back(1.5);  point_x.push_back(step_2[0]);       point_y.push_back(step_2[1]);       point_z.push_back(step_2[2] + 0.1); point_roll.push_back(); point_pitch.push_back();    point_yaw.push_back();  acc_time.push_back(0.1);
+    total_time.push_back(2.0);  point_x.push_back(ready_data[0]);   point_y.push_back(ready_data[1]);   point_z.push_back(ready_data[2]);   point_roll.push_back(); point_pitch.push_back();    point_yaw.push_back();  acc_time.push_back(0.1);
+
+    for(uint8_t i = 0; i < wp_row - 1; i++){
+        StructPathGenerateData path;
+        path_generator(point_x[i], point_x[i + 1], total_time[i + 1] - total_time[i], acc_time[i], h, &path.path_x);
+        path_generator(point_y[i], point_y[i + 1], total_time[i + 1] - total_time[i], acc_time[i], h, &path.path_y);
+        path_generator(point_z[i], point_z[i + 1], total_time[i + 1] - total_time[i], acc_time[i], h, &path.path_z);
+        movePath.push_back(path);
+    }
+
+    point_theta.push_back(0);
+    for(uint8_t i = 0; i < wp_row - 1; i++){
+        double R_init[9], R_final[9], r[3], theta;
+        RobotArm::rpy2mat(point_yaw[i], point_pitch[i], point_roll[i], R_init);
+        RobotArm::rpy2mat(point_yaw[i + 1], point_pitch[i + 1], point_roll[i + 1], R_final);
+        RobotArm::mat_to_axis_angle(R_init, R_final, r, &theta);
+        memcpy(movePath[i].r, r, sizeof(double)*3);
+        point_theta.push_back(theta);
+
+//        rt_printf("r : %f, %f, %f, %f\n", r[0], r[1], r[2], theta);
+    }
+
+    for(uint8_t i = 0; i < PathData.row - 1; i++){
+        path_generator(PathData.point_theta[i], PathData.point_theta[i + 1],
+                PathData.total_time[i + 1] - PathData.total_time[i], PathData.acc_time[i], 0.005, &PathData.movePath[i].path_theta);
+
+        PathData.movePath[i].data_size = PathData.movePath[i].path_x.size();
+        rt_printf("section %d path size : %d\n", i, PathData.movePath[i].data_size);
+    }
+
+    for (uint indx = 0; indx < path_x.size(); indx++) {
+
+
+        t_current += h;
+        save_data();
+        printf("Time : %.3f[s]\n", static_cast<double>(t_current));
+    }
+
+    fclose(fp);
+
+    fclose(fp1);
+    fclose(fp2);
+    fclose(fp3);
+    fclose(fp4);
+    fclose(fp5);
+    fclose(fp6);
+}
+
 #ifdef FILEIO_H_
 void RobotArm::run_dynamics(){
-    sprintf(file_name, "../FAR_Analysis/data/evaluation_dynamics_cpp.txt");
-    fp = fopen(file_name, "w+");
+    file_name = "../FAR_Analysis/data/evaluation_dynamics_cpp.txt";
+    fp = fopen(file_name.c_str(), "w+");
 
     vector<double> ref_data;
     uint row = 2501;
@@ -1289,7 +1375,7 @@ void RobotArm::dynamics(double *Ta)
     delete[] q_ddot;
 }
 
-void RobotArm::path_generator(double x0, double xf, double tf, double ta, std::vector<double> *path)
+void RobotArm::path_generator(double x0, double xf, double tf, double ta, double h, std::vector<double> *path)
 {
     double td = tf - ta;
     double vd = (xf - x0)/td;

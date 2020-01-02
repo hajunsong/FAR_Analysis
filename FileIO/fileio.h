@@ -20,6 +20,5 @@ using namespace std;
 
 // Text file data load
 void load_data(string file_name, vector<double> *data, string delimiter);
-void load_data(string file_name, vector<float> *data);
 
 #endif /* FILEIO_H_ */

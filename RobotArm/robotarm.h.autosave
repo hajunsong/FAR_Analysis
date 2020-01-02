@@ -111,6 +111,6 @@ private:
         unsigned int data_size;
     }StructPathGenerateData;
 
-    StructPathGenerateData movePath;
+    vector<StructPathGenerateData> movePath;
 };
 
