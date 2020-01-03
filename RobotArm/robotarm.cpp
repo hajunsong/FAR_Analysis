@@ -895,7 +895,10 @@ void RobotArm::run_feeding_motion()
         printf("section %d path size : %d\n", i, movePath[i].data_size);
     }
 
-    for(uint i = 0; i < movePath.size(); i++){
+    double Ae[9];
+    double Ri[9], Rd[9], des_ori[3];
+    memcpy(Ae, body[num_body].Ae, sizeof(double)*9);
+    for(uint i = 0; i < movePath.size() - 1; i++){
         for(uint j = 0; j < movePath[i].data_size; j++){
 
             printf("x : %.7f,\t y : %.7f,\t z : %.7f,\t theta : %.7f\n", movePath[i].path_x[j], movePath[i].path_y[j], movePath[i].path_z[j], movePath[i].path_theta[j]);
@@ -907,11 +910,9 @@ void RobotArm::run_feeding_motion()
             des_pos[1] = movePath[i].path_y[j];
             des_pos[2] = movePath[i].path_z[j];
 
-            double Ri[9], Rd[9], des_ori[3];
             axis_angle_to_mat(movePath[i].r, movePath[i].path_theta[j], Ri);
             mat(body[num_body].Ae, Ri, 3, 3, 3, 3, Rd);
             mat2rpy(Rd, des_ori);
-
 
             printf("xd : %.7f,\t yd : %.7f,\t zd : %.7f,\t roll : %.7f,\t pitch : %.7f,\t yaw : %.7f\n", des_pos[0], des_pos[1], des_pos[2], des_ori[0], des_ori[1], des_ori[2]);
 
@@ -928,6 +929,7 @@ void RobotArm::run_feeding_motion()
             save_data();
             printf("Time : %.3f[s]\n", static_cast<double>(t_current));
         }
+        memcpy(Ae, Rd, sizeof(double)*9);
     }
 
     fclose(fp);
