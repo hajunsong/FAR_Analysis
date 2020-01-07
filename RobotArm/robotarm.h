@@ -48,10 +48,11 @@ private:
         // orientation
         double Ai[9], Aijpp[9], Ai_Cij[9], Cij[9], u_vec[3];
         // position
-        double sij[3], sijp[3], ri[3], re[3], Ae[9], re_dot[3], we[3], ori[3];
+        double sij[3], sijp[3], ri[3], re[3], Ae[9], re_dot[3], we[3], ori[3], pose[6];
         // jacobian
         double Jvi[3], Jwi[3], re_qi[3], Ae_qi[9], r6_qi[3], A6_qi[9], Ae_qi_Cij[9], Ae_qi_Cij_Aijpp[9], Aijpp_qi[9], Cij_Aijpp[9], Ai_Cij_Aijpp_qi[9], Ae_qi_sijp[3], Ae_qi_end[3];
         double Ae_qi_31, Ae_qi_32, Ae_qi_33, Ae_qi_21, Ae_qi_11, roll_qi_1, roll_qi_2, roll_qi, pitch_qi_1, pitch_qi_2, pitch_qi, yaw_qi_1, yaw_qi_2, yaw_qi;
+        double oi[3], zi[3], zit[9];
         // velocity state
         double Hi[3], rit[9], Bi[6], Yih[6];
         // cartesian velocity
@@ -87,7 +88,9 @@ private:
     double lamda;
 
     void kinematics();
-    void inverse_kinematics(double pos_d[3], double ori_d[3]=nullptr);
+    void inverse_kinematics(double pos_d[3], double ori_d[3]);
+    void inverse_kinematics(double desired[6]);
+        void convert_desired(double desired_origin[6], double rot_mat[9], double desired_conv[6]);
         void jacobian();
     void dynamics();
     void dynamics(double *Ta);

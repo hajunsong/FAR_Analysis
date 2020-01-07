@@ -28,6 +28,24 @@ ylabel_dot_txt = {'VX','VY','VZ','WX','WY','WZ'};
 %     set(gcf,'Color',[1,1,1])
 %     plot(ref(:,2), ref(:,i + 8), 'b', 'LineWidth',2.5)
 %     hold on
+%     plot(ref(:,2), ref(:,i + 2), 'b', 'LineWidth',2.5)
+%     hold on
+%     plot(data(:,1), data(:,i + 1), 'r--','LineWidth', 2.5)
+%     grid on
+%     xlabel('Time [sec]')
+%     ylabel(sprintf('Position q%d [rad]', i))
+%     if i == 3
+%         legend('Ref','Analysis')
+%     end
+%     set(gca,'FontSize',13)
+% end
+% 
+% figure
+% for i = 1 : 6
+%     subplot(2,3,i)
+%     set(gcf,'Color',[1,1,1])
+%     plot(ref(:,2), ref(:,i + 8), 'b', 'LineWidth',2.5)
+%     hold on
 %     plot(data(:,1), data(:,i + 7), 'r--','LineWidth', 2.5)
 %     grid on
 %     xlabel('Time [sec]')
